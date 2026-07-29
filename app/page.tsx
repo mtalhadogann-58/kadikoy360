@@ -69,11 +69,24 @@ export default function App(){
  const scopedBallots=useMemo(()=>ballots.filter(canEdit),[ballots,account]);
  const selected=ballots.find(x=>x.id===selectedId)??scopedBallots[0]??ballots[0];
  const filtered=useMemo(()=>scopedBallots.filter(x=>`${x.id} ${x.school} ${x.neighborhood} ${x.result}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"))),[scopedBallots,query]);
- useEffect(()=>{const saved=localStorage.getItem("k360-session");const savedUser=localStorage.getItem("k360-user");if(saved==="on"){const found=accounts.find(x=>x.username===savedUser);if(found){setAccount(found);setLogged(true)}}const savedBallots=localStorage.getItem("k360-ballots-v3");if(savedBallots)try{setBallots(JSON.parse(savedBallots))}catch{}},[]);
+ useEffect(()=>{
+  // Oturum yalnızca açık tarayıcı sekmesi boyunca yaşar. Böylece eski bir
+  // localStorage kaydı kullanıcıyı giriş ekranını atlayarak içeri alamaz.
+  localStorage.removeItem("k360-session");
+  localStorage.removeItem("k360-user");
+  const saved=sessionStorage.getItem("k360-session-v4");
+  const savedUser=sessionStorage.getItem("k360-user-v4");
+  if(saved==="on"){
+   const found=accounts.find(x=>x.username===savedUser);
+   if(found){setAccount(found);setLogged(true)}
+  }
+  const savedBallots=localStorage.getItem("k360-ballots-v3");
+  if(savedBallots)try{setBallots(JSON.parse(savedBallots))}catch{}
+ },[]);
  useEffect(()=>{localStorage.setItem("k360-ballots-v3",JSON.stringify(ballots))},[ballots]);
  function go(next:Screen){setHistory(h=>[...h,screen]);setScreen(next);window.scrollTo({top:0,behavior:"smooth"})}
  function back(){const h=[...history];const p=h.pop();setHistory(h);setScreen(p??"dashboard")}
- function login(e:React.FormEvent){e.preventDefault();const found=accounts.find(x=>x.username===user);if(found&&pass==="sivas1358"){setAccount(found);setLogged(true);setScreen("portal");localStorage.setItem("k360-session","on");localStorage.setItem("k360-user",found.username)}else setErr("Kullanıcı adı veya şifre hatalı.")}
+ function login(e:React.FormEvent){e.preventDefault();const found=accounts.find(x=>x.username===user.trim().toLocaleLowerCase("tr"));if(found&&pass==="sivas1358"){setAccount(found);setLogged(true);setErr("");setPass("");setScreen("portal");sessionStorage.setItem("k360-session-v4","on");sessionStorage.setItem("k360-user-v4",found.username)}else setErr("Kullanıcı adı veya şifre hatalı.")}
  function notify(t:string){setToast(t);window.setTimeout(()=>setToast(""),2800)}
  function choose(f?:File){if(!f)return;const r=new FileReader();r.onload=()=>{setImage(String(r.result));setOcr(blank);setStep(1);setErr("")};r.readAsDataURL(f)}
  async function read(){setReading(true);setErr("");try{const r=await fetch("/api/ocr",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image})});const d=await r.json();if(!r.ok)throw new Error(d.error);setOcr({...blank,...d,parties:Array.isArray(d.parties)?d.parties:[]});setStep(2)}catch(e){setErr(e instanceof Error?e.message:"Fotoğraf okunamadı.")}finally{setReading(false)}}
@@ -95,9 +108,9 @@ export default function App(){
    {screen==="incidentNew"&&<IncidentForm ballots={scopedBallots} selectedId={selectedId} setSelectedId={setSelectedId} incident={incident} setIncident={setIncident} save={()=>{const target=ballots.find(x=>x.id===selectedId);if(!target||!canEdit(target)){notify("Bu sandıkta olay oluşturma yetkiniz yok.");return}if(!incident.description.trim()){notify("Açıklama alanı zorunlu.");return}const record:IncidentRecord={id:`OLY-${Date.now()}`,category:incident.category,priority:incident.priority,description:incident.description.trim(),party:incident.party.trim(),votes:incident.votes,status:"Açık",createdBy:account.name,createdAt:new Date().toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})};setBallots(xs=>xs.map(x=>x.id===target.id?{...x,incidentRecords:[...(x.incidentRecords??[]),record],incidents:(x.incidentRecords??[]).filter(r=>r.status==="Açık").length+1,critical:x.critical||record.priority==="Kritik",updated:"şimdi"}:x));notify(`Sandık ${target.id} olayı açıklamasıyla kaydedildi.`);setIncident({...incident,description:"",party:"",votes:""});setScreen("incidents")}}/>}
    {screen==="results"&&<Results ballots={ballots} scoped={scopedBallots} account={account} go={go} openBallot={openBallot}/>}
    {screen==="ocr"&&<OcrFlow image={image} choose={choose} reading={reading} read={read} err={err} step={step} setStep={setStep} ocr={ocr} setOcr={setOcr} allowedBallots={scopedBallots} finish={()=>{const target=ballots.find(x=>x.id===ocr.ballotBox);if(!target||!canEdit(target)){notify("Bu sandık için tutanak yükleme yetkiniz yok.");return}const parties=Object.fromEntries(ocr.parties.filter(p=>p.name&&p.votes!==null).map(p=>[p.name,p.votes as number]));setBallots(xs=>xs.map(x=>x.id===ocr.ballotBox?{...x,result:"Onaylandı",counting:"Sayım tamamlandı",votes:ocr.validVotes??0,invalid:ocr.invalidVotes??0,parties,updated:"şimdi"}:x));notify(`Sandık ${ocr.ballotBox} sonucu kaydedildi; kümül sonuçlar güncellendi.`);setStep(6)}}/>}
-   {screen==="users"&&(account.role==="district"?<UsersPage accounts={accounts} active={account} switchAccount={a=>{setAccount(a);localStorage.setItem("k360-user",a.username);setHistory([]);setScreen("dashboard");notify(`${a.name} profiline geçildi.`)}} edit={()=>setModal("user")} notify={notify}/>:<Empty text="Kullanıcı ve yetki yönetimi yalnızca ilçe adminine açıktır."/>)}
+   {screen==="users"&&(account.role==="district"?<UsersPage accounts={accounts} active={account} switchAccount={a=>{setAccount(a);sessionStorage.setItem("k360-user-v4",a.username);setHistory([]);setScreen("dashboard");notify(`${a.name} profiline geçildi.`)}} edit={()=>setModal("user")} notify={notify}/>:<Empty text="Kullanıcı ve yetki yönetimi yalnızca ilçe adminine açıktır."/>)}
    {screen==="notifications"&&<Notifications ballots={scopedBallots} openBallot={openBallot}/>}
-   {screen==="profile"&&<Profile account={account} accounts={accounts} scopeCount={scopedBallots.length} switchAccount={a=>{setAccount(a);localStorage.setItem("k360-user",a.username);setHistory([]);setScreen("dashboard");notify(`${a.name} profiline geçildi.`)}} logout={()=>{localStorage.removeItem("k360-session");localStorage.removeItem("k360-user");setLogged(false)}}/>}
+   {screen==="profile"&&<Profile account={account} accounts={accounts} scopeCount={scopedBallots.length} switchAccount={a=>{setAccount(a);sessionStorage.setItem("k360-user-v4",a.username);setHistory([]);setScreen("dashboard");notify(`${a.name} profiline geçildi.`)}} logout={()=>{sessionStorage.removeItem("k360-session-v4");sessionStorage.removeItem("k360-user-v4");setUser("");setPass("");setErr("");setLogged(false)}}/>}
   </main>
   <nav>
    <Nav active={screen==="dashboard"} on={()=>{setHistory([]);setScreen("dashboard")}} icon={<Home/>} text="Özet"/>
