@@ -1,0 +1,18 @@
+.advisorMedia{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;padding:10px 14px 0;background:#fff}
+.advisorMedia label{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;border:1px solid #d5dde8;border-radius:12px;background:#edf2f8;color:#102844;font-weight:800;cursor:pointer}
+.advisorMedia label:last-child{border-color:#ddc657;background:#fff7cf}
+.advisorMedia svg{width:18px}
+.advisorMedia+.advisorComposer{margin-top:0;padding-top:9px;border-top:0}
+.advisorMedia+.advisorComposer textarea{flex:1}
+.advisorMedia+.advisorComposer>button{display:grid;flex:none;place-items:center;width:43px;height:43px}
+.allianceEditor{margin-top:18px;padding:15px;border:1px solid #e4cf70;border-radius:16px;background:#fff9dc}
+.allianceEditor h3{margin-top:0}
+.allianceEditor>p,.sectionHint,.allianceSummary>p{margin:0 0 12px;color:#6e6651;font-size:13px;line-height:1.45}
+.allianceRow input{border-color:#d9c45e;background:#fffef7}
+.voteEquation{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.voteEquation span{display:grid;padding:10px;border-radius:12px;background:#edf2f7;color:#536176;font-size:12px}
+.voteEquation b{margin-top:3px;color:#0a203e;font-size:17px}
+.allianceSummary{margin-top:22px;padding-top:18px;border-top:1px solid #e1cf79}
+.allianceLine i{background:#d5ad16!important}
+.allianceReview{border-color:#e3ce6d!important;background:#fff9db!important}
+@media(max-width:520px){.voteEquation{grid-template-columns:1fr}.advisorMedia span{font-size:12px}}
